@@ -1,7 +1,7 @@
 package main
 
 import (
-	"do-manager/registrymanager"
+	"do-manager/manager"
 	"fmt"
 	"math"
 	"os"
@@ -27,12 +27,12 @@ func main() {
 	deletedTags := new(int)
 
 	subscriptionMemoryChannel := make(chan float64)
-	repositoryChannel := make(chan []registrymanager.Repository)
-	tagsChannel := make(chan [][]registrymanager.RepositoryTag)
+	repositoryChannel := make(chan []manager.Repository)
+	tagsChannel := make(chan [][]manager.RepositoryTag)
 
 	fmt.Println(time.Now())
 
-	manager := registrymanager.Initialize(digitalOceanToken, registry, 2)
+	manager := manager.Initialize(digitalOceanToken, registry, 2)
 
 	waitGroup := new(sync.WaitGroup)
 
