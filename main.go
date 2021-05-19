@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"do-manager/manager"
 	"fmt"
 	"math"
@@ -10,6 +11,7 @@ import (
 )
 
 func main() {
+	ctx := context.TODO()
 	digitalOceanToken, tokenFound := os.LookupEnv("DIGITALOCEANTOKEN")
 	registry, registryFound := os.LookupEnv("REGISTRY")
 
@@ -38,12 +40,12 @@ func main() {
 
 	waitGroup.Add(2)
 
-	go manager.GetAllocatedSubscriptionMemory(subscriptionMemoryChannel, waitGroup)
-	go manager.GetRepositories(repositoryChannel, waitGroup)
+	go manager.GetAllocatedSubscriptionMemory(ctx, subscriptionMemoryChannel, waitGroup)
+	go manager.GetRepositories(ctx, repositoryChannel, waitGroup)
 
 	subscriptionMemoryAllocated, repositories := <-subscriptionMemoryChannel, <-repositoryChannel
 
-	go manager.GetRepositoryTags(repositories, totalSpaceUsed, tagsChannel)
+	go manager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel)
 
 	tags := <-tagsChannel
 
@@ -53,11 +55,11 @@ func main() {
 
 	if percentageSpaceUsed > float64(80) {
 		waitGroup.Add(1)
-		go manager.DeleteExtraTags(repositories, tags, deletedTags, waitGroup)
+		go manager.DeleteExtraTags(ctx, repositories, tags, deletedTags, waitGroup)
 	}
 
 	if *deletedTags > 1 {
-		status := manager.StartGarbageCollection()
+		status := manager.StartGarbageCollection(ctx)
 		fmt.Printf("Your current garbage collection status is %s\n", status)
 	}
 
