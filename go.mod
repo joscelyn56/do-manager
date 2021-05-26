@@ -1,4 +1,4 @@
-module do-manager/regman
+module do-manager
 
 go 1.12
 

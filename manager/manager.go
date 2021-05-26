@@ -24,7 +24,7 @@ func (registryManager RegistryManager) DeleteExtraTags(ctx context.Context, repo
 		if int(repositories[i].TagCount) > registryManager.deleteCount {
 			extraTags := tags[i][registryManager.deleteCount:]
 			for j := 0; j < len(extraTags); j++ {
-				tagDeleted := registryManager.DeleteTag(ctx, extraTags[j].Repository, extraTags[j].Tag)
+				tagDeleted, _ := registryManager.DeleteTag(ctx, extraTags[j].Repository, extraTags[j].Tag)
 				if tagDeleted {
 					*deletedTags += 1
 				}
@@ -33,20 +33,19 @@ func (registryManager RegistryManager) DeleteExtraTags(ctx context.Context, repo
 	}
 }
 
-func (registryManager RegistryManager) DeleteTag(ctx context.Context, repository string, tagName string) bool {
+func (registryManager RegistryManager) DeleteTag(ctx context.Context, repository string, tagName string) (bool, error) {
 	resp, err := registryManager.client.Registry.DeleteTag(ctx, registryManager.registry, repository, tagName)
 	if err != nil {
-		fmt.Println(err)
-		return false
+		return false, err
 	}
 
 	if resp.Status == "204 No Content" {
-		return true
+		return true, nil
 	}
-	return false
+	return false, nil
 }
 
-func (registryManager RegistryManager) GetAllGarbageCollection(ctx context.Context) {
+func (registryManager RegistryManager) GetAllGarbageCollection(ctx context.Context) ([]godo.GarbageCollection, error) {
 	options := &godo.ListOptions{
 		Page:    1,
 		PerPage: 10,
@@ -54,25 +53,28 @@ func (registryManager RegistryManager) GetAllGarbageCollection(ctx context.Conte
 
 	gc, _, err := registryManager.client.Registry.ListGarbageCollections(ctx, registryManager.registry, options)
 
+	var collection []godo.GarbageCollection
+
 	if err != nil {
-		fmt.Println(err)
-		return
+		return collection, err
 	}
 
 	for i := 0; i < len(gc); i++ {
-		collection := *gc[i]
-		fmt.Println("Collection", collection.Status)
+		collection = append(collection, *gc[i])
 	}
+
+	return collection, nil
 }
 
-func (registryManager RegistryManager) GetAllocatedSubscriptionMemory(ctx context.Context, subscriptionMemoryChannel chan float64, waitGroup *sync.WaitGroup) {
+func (registryManager RegistryManager) GetAllocatedSubscriptionMemory(ctx context.Context, subscriptionMemoryChannel chan float64, errorChannel chan error, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 
 	registrySubscription, _, err := registryManager.client.Registry.GetSubscription(ctx)
 
 	if err != nil {
-		fmt.Println(err)
-		subscriptionMemoryChannel <- 0
+		errorChannel <- err
+		close(errorChannel)
+		close(subscriptionMemoryChannel)
 	}
 
 	subscription := &registrySubscription
@@ -83,7 +85,7 @@ func (registryManager RegistryManager) GetAllocatedSubscriptionMemory(ctx contex
 	close(subscriptionMemoryChannel)
 }
 
-func (registryManager RegistryManager) GetRepositories(ctx context.Context, repositoryChannel chan []Repository, waitGroup *sync.WaitGroup) {
+func (registryManager RegistryManager) GetRepositories(ctx context.Context, repositoryChannel chan []Repository, errorChannel chan error, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 
 	options := &godo.ListOptions{
@@ -94,8 +96,9 @@ func (registryManager RegistryManager) GetRepositories(ctx context.Context, repo
 	repositories, _, err := registryManager.client.Registry.ListRepositories(ctx, registryManager.registry, options)
 
 	if err != nil {
-		fmt.Println(err)
-		repositoryChannel <- nil
+		errorChannel <- err
+		close(errorChannel)
+		close(repositoryChannel)
 	}
 
 	var repositoryList []Repository

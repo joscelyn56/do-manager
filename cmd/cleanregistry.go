@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"do-manager/regman/manager"
+	"do-manager/manager"
 	"flag"
 	"fmt"
 	"math"
@@ -35,21 +35,31 @@ func main() {
 	subscriptionMemoryChannel := make(chan float64)
 	repositoryChannel := make(chan []manager.Repository)
 	tagsChannel := make(chan [][]manager.RepositoryTag)
+	errorChannel := make(chan error)
 
 	fmt.Println(time.Now())
 
-	manager := manager.Initialize(*apiToken, *registryName, *count)
+	registryManager := manager.Initialize(*apiToken, *registryName, *count)
 
 	waitGroup := new(sync.WaitGroup)
 
 	waitGroup.Add(2)
 
-	go manager.GetAllocatedSubscriptionMemory(ctx, subscriptionMemoryChannel, waitGroup)
-	go manager.GetRepositories(ctx, repositoryChannel, waitGroup)
+	go registryManager.GetAllocatedSubscriptionMemory(ctx, subscriptionMemoryChannel, errorChannel, waitGroup)
+	go registryManager.GetRepositories(ctx, repositoryChannel, errorChannel, waitGroup)
+
+	if len(errorChannel) > 0 {
+		for err := range errorChannel {
+			if err != nil {
+				fmt.Print(err)
+			}
+		}
+		os.Exit(1)
+	}
 
 	subscriptionMemoryAllocated, repositories := <-subscriptionMemoryChannel, <-repositoryChannel
 
-	go manager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel)
+	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel)
 
 	tags := <-tagsChannel
 
@@ -59,11 +69,11 @@ func main() {
 
 	if percentageSpaceUsed > float64(80) {
 		waitGroup.Add(1)
-		go manager.DeleteExtraTags(ctx, repositories, tags, deletedTags, waitGroup)
+		go registryManager.DeleteExtraTags(ctx, repositories, tags, deletedTags, waitGroup)
 	}
 
 	if *deletedTags > 1 {
-		status := manager.StartGarbageCollection(ctx)
+		status := registryManager.StartGarbageCollection(ctx)
 		fmt.Printf("Your current garbage collection status is %s\n", status)
 	}
 
