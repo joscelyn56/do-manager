@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"do-manager/manager"
+	"do-manager/regman/manager"
 	"flag"
 	"fmt"
 	"math"
