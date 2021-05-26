@@ -2,7 +2,6 @@ package manager
 
 import (
 	"context"
-	"fmt"
 	"github.com/digitalocean/godo"
 	"sync"
 )
@@ -73,7 +72,6 @@ func (registryManager RegistryManager) GetAllocatedSubscriptionMemory(ctx contex
 
 	if err != nil {
 		errorChannel <- err
-		close(errorChannel)
 		close(subscriptionMemoryChannel)
 	}
 
@@ -97,7 +95,6 @@ func (registryManager RegistryManager) GetRepositories(ctx context.Context, repo
 
 	if err != nil {
 		errorChannel <- err
-		close(errorChannel)
 		close(repositoryChannel)
 	}
 
@@ -115,7 +112,7 @@ func (registryManager RegistryManager) GetRepositories(ctx context.Context, repo
 	close(repositoryChannel)
 }
 
-func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, repositories []Repository, totalSpaceUsed *float64, tagsChannel chan [][]RepositoryTag) {
+func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, repositories []Repository, totalSpaceUsed *float64, tagsChannel chan [][]RepositoryTag, errorChannel chan error) {
 	options := &godo.ListOptions{
 		Page:    1,
 		PerPage: 10,
@@ -129,7 +126,7 @@ func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, re
 		tags, _, err := registryManager.client.Registry.ListRepositoryTags(ctx, registryManager.registry, repositories[i].RegistryName, options)
 
 		if err != nil {
-			fmt.Println(err)
+			errorChannel <- err
 			continue
 		}
 
@@ -150,17 +147,18 @@ func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, re
 	}
 
 	tagsChannel <- TagList
+
+	close(tagsChannel)
 }
 
-func (registryManager RegistryManager) StartGarbageCollection(ctx context.Context) string {
+func (registryManager RegistryManager) StartGarbageCollection(ctx context.Context) (string, error) {
 	request := &godo.StartGarbageCollectionRequest{
 		Type: "untagged manifests and unreferenced blobs",
 	}
 	gc, _, err := registryManager.client.Registry.StartGarbageCollection(ctx, registryManager.registry, request)
 	if err != nil {
-		fmt.Println(err)
-		return ""
+		return "", err
 	}
 
-	return gc.Status
+	return gc.Status, nil
 }

@@ -8,7 +8,6 @@ import (
 	"math"
 	"os"
 	"sync"
-	"time"
 )
 
 func main() {
@@ -32,8 +31,6 @@ func main() {
 	tagsChannel := make(chan [][]manager.RepositoryTag)
 	errorChannel := make(chan error)
 
-	fmt.Println(time.Now())
-
 	registryManager := manager.Initialize(digitalOceanToken, registry, 2)
 
 	waitGroup := new(sync.WaitGroup)
@@ -43,18 +40,9 @@ func main() {
 	go registryManager.GetAllocatedSubscriptionMemory(ctx, subscriptionMemoryChannel, errorChannel, waitGroup)
 	go registryManager.GetRepositories(ctx, repositoryChannel, errorChannel, waitGroup)
 
-	if len(errorChannel) > 0 {
-		for err := range errorChannel {
-			if err != nil {
-				fmt.Print(err)
-			}
-		}
-		os.Exit(1)
-	}
-
 	subscriptionMemoryAllocated, repositories := <-subscriptionMemoryChannel, <-repositoryChannel
 
-	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel)
+	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel, errorChannel)
 
 	tags := <-tagsChannel
 
@@ -68,11 +56,19 @@ func main() {
 	}
 
 	if *deletedTags > 1 {
-		status := registryManager.StartGarbageCollection(ctx)
+		status, err := registryManager.StartGarbageCollection(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
 		fmt.Printf("Your current garbage collection status is %s\n", status)
 	}
 
-	waitGroup.Wait()
+	for err := range errorChannel {
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
-	fmt.Println(time.Now())
+	waitGroup.Wait()
+	close(errorChannel)
 }
