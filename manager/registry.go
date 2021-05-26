@@ -1,16 +1,12 @@
 package manager
 
 import (
-	"context"
-	_ "context"
 	"github.com/digitalocean/godo"
-	_ "github.com/digitalocean/godo"
 	"time"
 )
 
 type RegistryManager struct {
 	client *godo.Client
-	ctx context.Context
 	registry string
 	deleteCount int
 }
