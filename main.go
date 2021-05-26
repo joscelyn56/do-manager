@@ -24,7 +24,6 @@ func main() {
 	}
 
 	totalSpaceUsed := new(float64)
-	deletedTags := new(int)
 
 	subscriptionMemoryChannel := make(chan float64)
 	repositoryChannel := make(chan []manager.Repository)
@@ -51,24 +50,24 @@ func main() {
 	fmt.Printf("You have used over %.0f percent of allocated memory for the month\n", percentageSpaceUsed)
 
 	if percentageSpaceUsed > float64(80) {
-		waitGroup.Add(1)
-		go registryManager.DeleteExtraTags(ctx, repositories, tags, deletedTags, waitGroup)
-	}
+		deletedTags := registryManager.DeleteExtraTags(ctx, repositories, tags)
 
-	if *deletedTags > 1 {
-		status, err := registryManager.StartGarbageCollection(ctx)
-		if err != nil {
-			log.Fatal(err)
+		if deletedTags > 1 {
+			status, err := registryManager.StartGarbageCollection(ctx)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("Your current garbage collection status is %s\n", status)
 		}
-		fmt.Printf("Your current garbage collection status is %s\n", status)
 	}
 
-	for err := range errorChannel {
-		if err != nil {
-			log.Fatal(err)
+	if len(errorChannel) > 0 {
+		for err := range errorChannel {
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 
 	waitGroup.Wait()
-	close(errorChannel)
 }

@@ -16,8 +16,8 @@ func Initialize(digitalOceanToken string, registry string, deleteCount int) Regi
 	return registryManager
 }
 
-func (registryManager RegistryManager) DeleteExtraTags(ctx context.Context, repositories []Repository, tags [][]RepositoryTag, deletedTags *int, waitGroup *sync.WaitGroup)  {
-	defer waitGroup.Done()
+func (registryManager RegistryManager) DeleteExtraTags(ctx context.Context, repositories []Repository, tags [][]RepositoryTag) int {
+	deletedTags := 0
 
 	for i := 0; i < len(tags); i++ {
 		if int(repositories[i].TagCount) > registryManager.deleteCount {
@@ -25,11 +25,13 @@ func (registryManager RegistryManager) DeleteExtraTags(ctx context.Context, repo
 			for j := 0; j < len(extraTags); j++ {
 				tagDeleted, _ := registryManager.DeleteTag(ctx, extraTags[j].Repository, extraTags[j].Tag)
 				if tagDeleted {
-					*deletedTags += 1
+					deletedTags += 1
 				}
 			}
 		}
 	}
+
+	return deletedTags
 }
 
 func (registryManager RegistryManager) DeleteTag(ctx context.Context, repository string, tagName string) (bool, error) {
@@ -132,7 +134,7 @@ func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, re
 
 		for i := 0; i < len(tags); i++ {
 			tag := *tags[i]
-			*totalSpaceUsed = *totalSpaceUsed + float64(tag.SizeBytes)
+			*totalSpaceUsed = *totalSpaceUsed + float64(tag.CompressedSizeBytes)
 			TagRepository = append(TagRepository, RepositoryTag{
 				tag.RegistryName,
 				tag.Repository,
