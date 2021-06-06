@@ -7,8 +7,8 @@ import (
 	"log"
 	"math"
 	"os"
-	"sync"
 	"strconv"
+	"sync"
 )
 
 func main() {
