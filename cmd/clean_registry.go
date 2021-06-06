@@ -17,7 +17,7 @@ func main() {
 	apiToken := flag.String("token", "", "Digitalocean API token")
 	registryName := flag.String("registry", "", "Digitalocean container registry name")
 	count := flag.Int("count", 3, "Minimum number of tags allowed in the repository")
-	percentageThreshold := flag.Int("count", 50, "Maximum percentage threshold allowed before cleaning can occur")
+	percentageThreshold := flag.Int("percentage", 50, "Maximum percentage threshold allowed before cleaning can occur")
 
 	flag.Parse()
 
