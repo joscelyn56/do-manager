@@ -114,7 +114,9 @@ func (registryManager RegistryManager) GetRepositories(ctx context.Context, repo
 	close(repositoryChannel)
 }
 
-func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, repositories []Repository, totalSpaceUsed *float64, tagsChannel chan [][]RepositoryTag, errorChannel chan error) {
+func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, repositories []Repository, totalSpaceUsed *float64, tagsChannel chan [][]RepositoryTag, errorChannel chan error, waitGroup *sync.WaitGroup) {
+	defer waitGroup.Done()
+
 	options := &godo.ListOptions{
 		Page:    1,
 		PerPage: 10,

@@ -63,7 +63,9 @@ func main() {
 
 	subscriptionMemoryAllocated, repositories := <-subscriptionMemoryChannel, <-repositoryChannel
 
-	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel, errorChannel)
+	waitGroup.Add(1)
+
+	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel, errorChannel, waitGroup)
 
 	tags := <-tagsChannel
 
