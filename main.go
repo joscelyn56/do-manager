@@ -13,7 +13,7 @@ import (
 
 func main() {
 	ctx := context.TODO()
-	digitalOceanToken, tokenFound := os.LookupEnv("DIGITALOCEANTOKEN")
+	digitalOceanToken, tokenFound := os.LookupEnv("DIGITALOCEAN_TOKEN")
 	registry, registryFound := os.LookupEnv("REGISTRY")
 	maxImageCount, maxImageCountFound := os.LookupEnv("MAX_IMAGE_COUNT")
 	percentageThreshold, percentageThresholdFound := os.LookupEnv("PERCENTAGE_THRESHOLD")

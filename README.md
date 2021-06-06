@@ -32,12 +32,13 @@ run the command below to build the go program and creates an executable file.
 run the command below to run the executable file.
 
 ```bash
-./run.sh args1 args2 args3
+./run.sh args1 args2 args3 args4
 ```
 > The arguments to be specified are defined below:\
 **args1** - *digitalocean api token*\
 **args2** - *container registry name*\
-**args3** - *the minimum number of images to be left in your registry*
+**args3** - *the minimum number of images to be left in your registry*\
+**args4** - *the maximum percentage of memory used before cleaning can occur*
 
 # Manual
 <!-- blank line -->
@@ -47,8 +48,10 @@ run the command below to run the executable file.
 
 Export the following variables to your environment:
 ```bash
-export DIGITALOCEANTOKEN={Digitalocean api token}
+export DIGITALOCEAN_TOKEN={Digitalocean api token}
 export REGISTRY={Digitalocean container registry name}
+export MAX_IMAGE_COUNT={Maximum number of images allowed to be left after cleaning}
+export PERCENTAGE_THRESHOLD={Percentage threshold of memory used before cleaning can occur}
 ```
 
 Run go program
@@ -65,6 +68,5 @@ cd cmd
 
 Run go program
 ```bash
-go run clean_registry.go -token {Digitalocean api token} -registry {Digitalocean container registry name} -count {the minimum number of images to be left in your registry}
-
+go run clean_registry.go -token {Digitalocean api token} -registry {Digitalocean container registry name} -count {the minimum number of images to be left in your registry} -percentage {the maximum percentage of memory used before cleaning can occur}
 ```
