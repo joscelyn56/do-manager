@@ -17,6 +17,8 @@ func main() {
 	apiToken := flag.String("token", "", "Digitalocean API token")
 	registryName := flag.String("registry", "", "Digitalocean container registry name")
 	count := flag.Int("count", 3, "Minimum number of tags allowed in the repository")
+	percentageThreshold := flag.Int("count", 50, "Maximum percentage threshold allowed before cleaning can occur")
+
 	flag.Parse()
 
 	if *apiToken == "" {
@@ -55,7 +57,7 @@ func main() {
 
 	fmt.Printf("You have used over %.0f percent of allocated memory for the month\n", percentageSpaceUsed)
 
-	if percentageSpaceUsed > float64(80) {
+	if percentageSpaceUsed > float64(*percentageThreshold) {
 		deletedTags := registryManager.DeleteExtraTags(ctx, repositories, tags)
 
 		if deletedTags > 1 {
