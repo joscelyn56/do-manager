@@ -32,6 +32,10 @@ case $COUNT in
     *);;
 esac
 
+# Navigate to root directory
+cd ..
+
+# Get file location information
 LOCATION=$(pwd)
 FILEPATH="$LOCATION/cleanregistry"
 
@@ -43,6 +47,8 @@ then
   exit
 fi
 
+# Run script
 "$FILEPATH" -token "$TOKEN" -registry "$REGISTRY" -count $COUNT
 
+# Remove created script file
 rm -f "$FILEPATH"

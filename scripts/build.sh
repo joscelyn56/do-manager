@@ -9,6 +9,10 @@ then
     exit
 fi
 
+# Navigate to root directory
+cd ..
+
+# Get file location information
 LOCATION=$(pwd)
 FILENAME="clean_registry"
 DIRECTORY_PATH="$LOCATION/cmd"
