@@ -5,7 +5,7 @@ set -Eeuo pipefail
 # Check if number of arguments used to run the script is 4
 if [ $# != 4 ]
 then
-  echo 'Three arguments must be specified, Digitalocean token, registry name, max image count and maximum percentage allowed.'
+  echo 'Four arguments must be specified, Digitalocean token, registry name, max image count and maximum percentage allowed.'
   exit
 fi
 
@@ -44,7 +44,7 @@ cd ..
 
 # Get file location information
 LOCATION=$(pwd)
-FILEPATH="$LOCATION/cleanregistry"
+FILEPATH="$LOCATION/clean_registry"
 
 # Check if the cli file exists in the directory
 if [ ! -x "$FILEPATH" ]
