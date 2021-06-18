@@ -7,13 +7,16 @@ import (
 	"log"
 	"math"
 	"os"
+	"strconv"
 	"sync"
 )
 
 func main() {
 	ctx := context.TODO()
-	digitalOceanToken, tokenFound := os.LookupEnv("DIGITALOCEANTOKEN")
+	digitalOceanToken, tokenFound := os.LookupEnv("DIGITALOCEAN_TOKEN")
 	registry, registryFound := os.LookupEnv("REGISTRY")
+	maxImageCount, maxImageCountFound := os.LookupEnv("MAX_IMAGE_COUNT")
+	percentageThreshold, percentageThresholdFound := os.LookupEnv("PERCENTAGE_THRESHOLD")
 
 	if !tokenFound {
 		log.Fatal("DIGITALOCEAN TOKEN NOT SET")
@@ -23,6 +26,25 @@ func main() {
 		log.Fatal("REGISTRY NAME NOT SET")
 	}
 
+	if !maxImageCountFound {
+		log.Fatal("MAXIMUM IMAGE COUNT NOT SET")
+	}
+
+	if !percentageThresholdFound {
+		log.Fatal("PERCENTAGE THRESHOLD NOT SET")
+	}
+
+	// Convert max image count to int
+	maxImage, err := strconv.Atoi(maxImageCount)
+	if err != nil {
+		log.Fatal("INVALID MAX IMAGE COUNT PROVIDED. MUST BE A NUMBER")
+	}
+
+	percentage, err := strconv.Atoi(percentageThreshold)
+	if err != nil {
+		log.Fatal("INVALID PERCENTAGE THRESHOLD PROVIDED. MUST BE A NUMBER")
+	}
+
 	totalSpaceUsed := new(float64)
 
 	subscriptionMemoryChannel := make(chan float64)
@@ -30,7 +52,7 @@ func main() {
 	tagsChannel := make(chan [][]manager.RepositoryTag)
 	errorChannel := make(chan error)
 
-	registryManager := manager.Initialize(digitalOceanToken, registry, 2)
+	registryManager := manager.Initialize(digitalOceanToken, registry, maxImage)
 
 	waitGroup := new(sync.WaitGroup)
 
@@ -41,7 +63,9 @@ func main() {
 
 	subscriptionMemoryAllocated, repositories := <-subscriptionMemoryChannel, <-repositoryChannel
 
-	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel, errorChannel)
+	waitGroup.Add(1)
+
+	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel, errorChannel, waitGroup)
 
 	tags := <-tagsChannel
 
@@ -49,7 +73,7 @@ func main() {
 
 	fmt.Printf("You have used over %.0f percent of allocated memory for the month\n", percentageSpaceUsed)
 
-	if percentageSpaceUsed > float64(80) {
+	if percentageSpaceUsed > float64(percentage) {
 		deletedTags := registryManager.DeleteExtraTags(ctx, repositories, tags)
 
 		if deletedTags > 1 {
