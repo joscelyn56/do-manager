@@ -75,15 +75,14 @@ func main() {
 
 	if percentageSpaceUsed > float64(percentage) {
 		deletedTags := registryManager.DeleteExtraTags(ctx, repositories, tags)
-
-		if deletedTags > 1 {
-			status, err := registryManager.StartGarbageCollection(ctx)
-			if err != nil {
-				log.Fatal(err)
-			}
-			fmt.Printf("Your current garbage collection status is %s\n", status)
-		}
+		fmt.Printf("%d tags were deleted\n", deletedTags)
 	}
+
+	status, err := registryManager.StartGarbageCollection(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("Your current garbage collection status is %s\n", status)
 
 	if len(errorChannel) > 0 {
 		for err := range errorChannel {
