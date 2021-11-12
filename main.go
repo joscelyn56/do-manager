@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"do-manager/manager"
-	"fmt"
 	"log"
-	"math"
 	"os"
 	"strconv"
-	"sync"
 )
 
 func main() {
@@ -45,52 +42,5 @@ func main() {
 		log.Fatal("INVALID PERCENTAGE THRESHOLD PROVIDED. MUST BE A NUMBER")
 	}
 
-	totalSpaceUsed := new(float64)
-
-	subscriptionMemoryChannel := make(chan float64)
-	repositoryChannel := make(chan []manager.Repository)
-	tagsChannel := make(chan [][]manager.RepositoryTag)
-	errorChannel := make(chan error)
-
-	registryManager := manager.Initialize(digitalOceanToken, registry, maxImage)
-
-	waitGroup := new(sync.WaitGroup)
-
-	waitGroup.Add(2)
-
-	go registryManager.GetAllocatedSubscriptionMemory(ctx, subscriptionMemoryChannel, errorChannel, waitGroup)
-	go registryManager.GetRepositories(ctx, repositoryChannel, errorChannel, waitGroup)
-
-	subscriptionMemoryAllocated, repositories := <-subscriptionMemoryChannel, <-repositoryChannel
-
-	waitGroup.Add(1)
-
-	go registryManager.GetRepositoryTags(ctx, repositories, totalSpaceUsed, tagsChannel, errorChannel, waitGroup)
-
-	tags := <-tagsChannel
-
-	percentageSpaceUsed := math.Ceil((*totalSpaceUsed / subscriptionMemoryAllocated) * 100)
-
-	fmt.Printf("You have used over %.0f percent of allocated memory for the month\n", percentageSpaceUsed)
-
-	if percentageSpaceUsed > float64(percentage) {
-		deletedTags := registryManager.DeleteExtraTags(ctx, repositories, tags)
-		fmt.Printf("%d tags were deleted\n", deletedTags)
-	}
-
-	status, err := registryManager.StartGarbageCollection(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("Your current garbage collection status is %s\n", status)
-
-	if len(errorChannel) > 0 {
-		for err := range errorChannel {
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-
-	waitGroup.Wait()
+	manager.RunContainerManager(ctx, digitalOceanToken, registry, maxImage, percentage)
 }
