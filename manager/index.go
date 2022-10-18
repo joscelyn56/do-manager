@@ -42,9 +42,15 @@ func RunContainerManager(ctx context.Context, apiToken string, registryName stri
 		fmt.Printf("%d tags were deleted\n", deletedTags)
 	}
 
-	status, err := registryManager.StartGarbageCollection(ctx)
-	if err == nil {
-		fmt.Printf("Your current garbage collection status is %s\n", status)
+	activeGarbageCollection := registryManager.GetActiveGarbageCollection(ctx)
+
+	if activeGarbageCollection == "Active" {
+		fmt.Printf("Garbage collection is active")
+	} else {
+		status, err := registryManager.StartGarbageCollection(ctx)
+		if err == nil {
+			fmt.Printf("Your current garbage collection status is %s\n", status)
+		}
 	}
 
 	if len(errorChannel) > 0 {

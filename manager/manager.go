@@ -36,6 +36,7 @@ func (registryManager RegistryManager) DeleteExtraTags(ctx context.Context, repo
 
 func (registryManager RegistryManager) DeleteTag(ctx context.Context, repository string, tagName string) (bool, error) {
 	resp, err := registryManager.client.Registry.DeleteTag(ctx, registryManager.registry, repository, tagName)
+
 	if err != nil {
 		return false, err
 	}
@@ -43,43 +44,18 @@ func (registryManager RegistryManager) DeleteTag(ctx context.Context, repository
 	if resp.Status == "204 No Content" {
 		return true, nil
 	}
+
 	return false, nil
 }
 
-func (registryManager RegistryManager) GetAllGarbageCollection(ctx context.Context) ([]godo.GarbageCollection, error) {
-	options := &godo.ListOptions{
-		Page:    1,
-		PerPage: 10,
+func (registryManager RegistryManager) GetActiveGarbageCollection(ctx context.Context) string {
+	_, _, err := registryManager.client.Registry.GetGarbageCollection(ctx, registryManager.registry)
+
+	if err != nil {
+		return "Inactive"
 	}
 
-	var collection []godo.GarbageCollection
-
-	for {
-		gc, resp, err := registryManager.client.Registry.ListGarbageCollections(ctx, registryManager.registry, options)
-
-		if err != nil {
-			return collection, err
-		}
-
-		for i := 0; i < len(gc); i++ {
-			collection = append(collection, *gc[i])
-		}
-
-		// if we are at the last page, break out the for loop
-		if resp.Links == nil || resp.Links.IsLastPage() {
-			break
-		}
-
-		page, err := resp.Links.CurrentPage()
-		if err != nil {
-			return collection, err
-		}
-
-		// set the page we want for the next request
-		options.Page = page + 1
-	}
-
-	return collection, nil
+	return "Active"
 }
 
 func (registryManager RegistryManager) GetAllocatedSubscriptionMemory(ctx context.Context, subscriptionMemoryChannel chan float64, errorChannel chan error, waitGroup *sync.WaitGroup) {
