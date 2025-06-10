@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 # Set GO version
-GO_VERSION="1.16.5"
+GO_VERSION="1.23.4"
 
 # Set colors
 RED='\033[31m'
