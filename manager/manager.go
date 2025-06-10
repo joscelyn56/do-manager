@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"fmt"
 	"github.com/digitalocean/godo"
 	"sync"
 )
@@ -79,17 +80,15 @@ func (registryManager RegistryManager) GetAllocatedSubscriptionMemory(ctx contex
 func (registryManager RegistryManager) GetRepositories(ctx context.Context, repositoryChannel chan []Repository, errorChannel chan error, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
 
-	options := &godo.ListOptions{
-		Page:    1,
-		PerPage: 10,
-	}
+	options := &godo.TokenListOptions{}
 
 	var repositoryList []Repository
 
 	for {
-		repositories, resp, err := registryManager.client.Registry.ListRepositories(ctx, registryManager.registry, options)
+		repositories, resp, err := registryManager.client.Registry.ListRepositoriesV2(ctx, registryManager.registry, options)
 
 		if err != nil {
+			fmt.Println(err)
 			errorChannel <- err
 			close(repositoryChannel)
 		}
