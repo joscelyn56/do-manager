@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 )
 
 func main() {
@@ -31,6 +32,8 @@ func main() {
 		log.Fatal("PERCENTAGE THRESHOLD NOT SET")
 	}
 
+	waitPeriodStr, _ := os.LookupEnv("WAIT_PERIOD")
+
 	// Convert max image count to int
 	maxImage, err := strconv.Atoi(maxImageCount)
 	if err != nil {
@@ -42,5 +45,14 @@ func main() {
 		log.Fatal("INVALID PERCENTAGE THRESHOLD PROVIDED. MUST BE A NUMBER")
 	}
 
-	manager.RunContainerManager(ctx, digitalOceanToken, registry, maxImage, percentage)
+	waitPeriod := 10 // default 10 minutes
+	if waitPeriodStr != "" {
+		wp, err := strconv.Atoi(waitPeriodStr)
+		if err != nil {
+			log.Fatal("INVALID WAIT PERIOD PROVIDED. MUST BE A NUMBER (minutes)")
+		}
+		waitPeriod = wp
+	}
+
+	manager.RunContainerManager(ctx, digitalOceanToken, registry, maxImage, percentage, time.Duration(waitPeriod)*time.Minute)
 }

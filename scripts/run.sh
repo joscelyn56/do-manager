@@ -2,18 +2,19 @@
 
 set -Eeuo pipefail
 
-# Check if number of arguments used to run the script is 4
-if [ $# != 4 ]
+# Check if number of arguments is at least 4
+if [ $# -lt 4 ]
 then
-  echo 'Four arguments must be specified, Digitalocean token, registry name, max image count and maximum percentage allowed.'
+  echo 'At least four arguments must be specified: Digitalocean token, registry name, max image count, maximum percentage allowed, and optionally wait period in minutes (default: 5).'
   exit
 fi
 
-# Save all 3 arguments to variables
+# Save arguments to variables
 TOKEN=$1
 REGISTRY=$2
 COUNT=$3
 PERCENTAGE_THRESHOLD=$4
+WAIT_PERIOD=${5:-10}
 
 # Check if the first argument is a string
 case $TOKEN in
@@ -55,7 +56,7 @@ then
 fi
 
 # Run script
-"$FILEPATH" -token "$TOKEN" -registry "$REGISTRY" -count "$COUNT" -percentage "$PERCENTAGE_THRESHOLD"
+"$FILEPATH" -token "$TOKEN" -registry "$REGISTRY" -count "$COUNT" -percentage "$PERCENTAGE_THRESHOLD" -wait "$WAIT_PERIOD"
 
 # Remove created script file
 rm -f "$FILEPATH"

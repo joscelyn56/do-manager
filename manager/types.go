@@ -6,9 +6,10 @@ import (
 )
 
 type RegistryManager struct {
-	client *godo.Client
-	registry string
+	client      *godo.Client
+	registry    string
 	deleteCount int
+	waitPeriod  time.Duration
 }
 
 type Repository struct {
