@@ -3,15 +3,18 @@ package manager
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/digitalocean/godo"
 	"sync"
 )
 
-func Initialize(digitalOceanToken string, registry string, deleteCount int) RegistryManager {
+func Initialize(digitalOceanToken string, registry string, deleteCount int, waitPeriod time.Duration) RegistryManager {
 	registryManager := RegistryManager{
 		client:      godo.NewFromToken(digitalOceanToken),
 		registry:    registry,
 		deleteCount: deleteCount,
+		waitPeriod:  waitPeriod,
 	}
 
 	return registryManager
@@ -179,6 +182,64 @@ func (registryManager RegistryManager) GetRepositoryTags(ctx context.Context, re
 	tagsChannel <- TagList
 
 	close(tagsChannel)
+}
+
+// HasRecentPushActivity checks if any image was pushed within the given duration.
+func (registryManager RegistryManager) HasRecentPushActivity(ctx context.Context, since time.Duration) (bool, error) {
+	options := &godo.TokenListOptions{}
+
+	repositories, _, err := registryManager.client.Registry.ListRepositoriesV2(ctx, registryManager.registry, options)
+	if err != nil {
+		return false, err
+	}
+
+	cutoff := time.Now().Add(-since)
+
+	for _, repo := range repositories {
+		tags, _, err := registryManager.client.Registry.ListRepositoryTags(ctx, registryManager.registry, repo.Name, &godo.ListOptions{Page: 1, PerPage: 1})
+		if err != nil {
+			return false, err
+		}
+		if len(tags) > 0 && tags[0].UpdatedAt.After(cutoff) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// WaitForQuietPeriod waits until no new images have been pushed for the configured
+// wait period. It polls at half the wait period interval. Returns true if it's safe
+// to start GC, false if the context was cancelled.
+func (registryManager RegistryManager) WaitForQuietPeriod(ctx context.Context) bool {
+	if registryManager.waitPeriod == 0 {
+		return true
+	}
+
+	pollInterval := registryManager.waitPeriod / 2
+	if pollInterval < 30*time.Second {
+		pollInterval = 30 * time.Second
+	}
+
+	fmt.Printf("Waiting for quiet period (%s with no new pushes) before starting garbage collection...\n", registryManager.waitPeriod)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(pollInterval):
+			active, err := registryManager.HasRecentPushActivity(ctx, registryManager.waitPeriod)
+			if err != nil {
+				fmt.Printf("Error checking push activity: %v, retrying...\n", err)
+				continue
+			}
+			if !active {
+				fmt.Println("No recent push activity detected. Safe to start garbage collection.")
+				return true
+			}
+			fmt.Println("Recent push activity detected, waiting...")
+		}
+	}
 }
 
 func (registryManager RegistryManager) StartGarbageCollection(ctx context.Context) (string, error) {
