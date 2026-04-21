@@ -33,6 +33,7 @@ func main() {
 	}
 
 	waitPeriodStr, _ := os.LookupEnv("WAIT_PERIOD")
+	cleanupEnabledStr, _ := os.LookupEnv("CLEANUP_ENABLED")
 
 	// Convert max image count to int
 	maxImage, err := strconv.Atoi(maxImageCount)
@@ -54,5 +55,14 @@ func main() {
 		waitPeriod = wp
 	}
 
-	manager.RunContainerManager(ctx, digitalOceanToken, registry, maxImage, percentage, time.Duration(waitPeriod)*time.Minute)
+	cleanupEnabled := true // default: enabled
+	if cleanupEnabledStr != "" {
+		ce, err := strconv.ParseBool(cleanupEnabledStr)
+		if err != nil {
+			log.Fatal("INVALID CLEANUP_ENABLED PROVIDED. MUST BE A BOOLEAN (true/false)")
+		}
+		cleanupEnabled = ce
+	}
+
+	manager.RunContainerManager(ctx, digitalOceanToken, registry, maxImage, percentage, time.Duration(waitPeriod)*time.Minute, cleanupEnabled)
 }

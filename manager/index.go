@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func RunContainerManager(ctx context.Context, apiToken string, registryName string, count int, percentageThreshold int, waitPeriod time.Duration) {
+func RunContainerManager(ctx context.Context, apiToken string, registryName string, count int, percentageThreshold int, waitPeriod time.Duration, cleanupEnabled bool) {
 	totalSpaceUsed := new(float64)
 
 	subscriptionMemoryChannel := make(chan float64)
@@ -43,20 +43,24 @@ func RunContainerManager(ctx context.Context, apiToken string, registryName stri
 		fmt.Printf("%d tags were deleted\n", deletedTags)
 	}
 
-	activeGarbageCollection := registryManager.GetActiveGarbageCollection(ctx)
+	if cleanupEnabled {
+		activeGarbageCollection := registryManager.GetActiveGarbageCollection(ctx)
 
-	if activeGarbageCollection == "Active" {
-		fmt.Println("Garbage collection is already active")
-	} else if registryManager.WaitForQuietPeriod(ctx) {
-		// Re-check GC status after waiting, another instance may have started it
-		if registryManager.GetActiveGarbageCollection(ctx) == "Active" {
-			fmt.Println("Garbage collection was started by another process")
-		} else {
-			status, err := registryManager.StartGarbageCollection(ctx)
-			if err == nil {
-				fmt.Printf("Your current garbage collection status is %s\n", status)
+		if activeGarbageCollection == "Active" {
+			fmt.Println("Garbage collection is already active")
+		} else if registryManager.WaitForQuietPeriod(ctx) {
+			// Re-check GC status after waiting, another instance may have started it
+			if registryManager.GetActiveGarbageCollection(ctx) == "Active" {
+				fmt.Println("Garbage collection was started by another process")
+			} else {
+				status, err := registryManager.StartGarbageCollection(ctx)
+				if err == nil {
+					fmt.Printf("Your current garbage collection status is %s\n", status)
+				}
 			}
 		}
+	} else {
+		fmt.Println("Container registry cleanup is disabled. Skipping garbage collection.")
 	}
 
 	if len(errorChannel) > 0 {
