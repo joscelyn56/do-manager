@@ -15,6 +15,7 @@ REGISTRY=$2
 COUNT=$3
 PERCENTAGE_THRESHOLD=$4
 WAIT_PERIOD=${5:-10}
+CLEANUP_ENABLED=${6:-true}
 
 # Check if the first argument is a string
 case $TOKEN in
@@ -56,7 +57,7 @@ then
 fi
 
 # Run script
-"$FILEPATH" -token "$TOKEN" -registry "$REGISTRY" -count "$COUNT" -percentage "$PERCENTAGE_THRESHOLD" -wait "$WAIT_PERIOD"
+"$FILEPATH" -token "$TOKEN" -registry "$REGISTRY" -count "$COUNT" -percentage "$PERCENTAGE_THRESHOLD" -wait "$WAIT_PERIOD" -cleanup="$CLEANUP_ENABLED"
 
 # Remove created script file
 rm -f "$FILEPATH"
